@@ -1,35 +1,78 @@
-#include "runshare.h"
+#include <ruby.h>
 
-VALUE rb_mRUnshare;
+#include "unshare.h"
 
-VALUE sym_clone_newuser;
-VALUE sym_clone_newcgroup;
-VALUE sym_clone_newipc;
-VALUE sym_clone_newuts;
-VALUE sym_clone_newnet;
-VALUE sym_clone_newpid;
-VALUE sym_clone_newns;
-VALUE sym_clone_newtime;
+static VALUE rb_mRUnshare;
+
+enum {
+  CLONE_NEWUSER,
+  CLONE_NEWCGROUP,
+  CLONE_NEWIPC,
+  CLONE_NEWUTS,
+  CLONE_NEWNET,
+  CLONE_NEWPID,
+  CLONE_NEWNS,
+  CLONE_NEWTIME,
+  CLONE_KEYWORDS
+} UNSHARE_KEYWORDS;
+
+static ID id_clone_newuser;
+static ID id_clone_newcgroup;
+static ID id_clone_newipc;
+static ID id_clone_newuts;
+static ID id_clone_newnet;
+static ID id_clone_newpid;
+static ID id_clone_newns;
+static ID id_clone_newtime;
+
+static ID rb_unshare_keywords[CLONE_KEYWORDS];
 
 static VALUE
-rb_unshare(VALUE mod)
+rb_unshare(int argc, VALUE *argv, VALUE self)
 {
-  int err = rb_unshare_internal(1, (char **) (const char *[1]) {"runshare"});
-  return INT2FIX(err);
+  VALUE opt = Qnil;
+  struct rb_unshare_args args = {};
+
+  rb_scan_args(argc, argv, "0:", &opt);
+
+  if (!NIL_P(opt)) {
+    VALUE kwvals[CLONE_KEYWORDS];
+
+    rb_get_kwargs(opt, rb_unshare_keywords, 0, CLONE_KEYWORDS, kwvals);
+
+    if (kwvals[CLONE_NEWUSER] != Qundef) args.clone_newuser = RTEST(kwvals[CLONE_NEWUSER]);
+    if (kwvals[CLONE_NEWCGROUP] != Qundef) args.clone_newcgroup = RTEST(kwvals[CLONE_NEWCGROUP]);
+    if (kwvals[CLONE_NEWIPC] != Qundef) args.clone_newipc = RTEST(kwvals[CLONE_NEWIPC]);
+    if (kwvals[CLONE_NEWUTS] != Qundef) args.clone_newuts = RTEST(kwvals[CLONE_NEWUTS]);
+    if (kwvals[CLONE_NEWNET] != Qundef) args.clone_newnet = RTEST(kwvals[CLONE_NEWNET]);
+    if (kwvals[CLONE_NEWPID] != Qundef) args.clone_newpid = RTEST(kwvals[CLONE_NEWPID]);
+    if (kwvals[CLONE_NEWNS]  != Qundef) args.clone_newns = RTEST(kwvals[CLONE_NEWNS]);
+    if (kwvals[CLONE_NEWTIME] != Qundef) args.clone_newtime = RTEST(kwvals[CLONE_NEWTIME]);
+  }
+
+  return INT2FIX(rb_unshare_internal(args));
 }
 
 void
-Init_runshare(void)
-{
+Init_runshare(void) {
   rb_mRUnshare = rb_define_module("RUnshare");
-  rb_define_singleton_method(rb_mRUnshare, "unshare", rb_unshare, 0);
+  rb_define_singleton_method(rb_mRUnshare, "unshare", rb_unshare, -1);
 
-  sym_clone_newuser = ID2SYM(rb_intern("CLONE_NEWUSER"));
-  sym_clone_newcgroup = ID2SYM(rb_intern("CLONE_NEWCGROUP"));
-  sym_clone_newipc = ID2SYM(rb_intern("CLONE_NEWIPC"));
-  sym_clone_newuts = ID2SYM(rb_intern("CLONE_NEWUTS"));
-  sym_clone_newnet = ID2SYM(rb_intern("CLONE_NEWNET"));
-  sym_clone_newpid = ID2SYM(rb_intern("CLONE_NEWPID"));
-  sym_clone_newns = ID2SYM(rb_intern("CLONE_NEWNS"));
-  sym_clone_newtime = ID2SYM(rb_intern("CLONE_NEWTIME"));
+  id_clone_newuser   = rb_intern("clone_newuser");
+  id_clone_newcgroup = rb_intern("clone_newcgroup");
+  id_clone_newipc    = rb_intern("clone_newipc");
+  id_clone_newuts    = rb_intern("clone_newuts");
+  id_clone_newnet    = rb_intern("clone_newnet");
+  id_clone_newpid    = rb_intern("clone_newpid");
+  id_clone_newns     = rb_intern("clone_newns");
+  id_clone_newtime   = rb_intern("clone_newtime");
+
+  rb_unshare_keywords[CLONE_NEWUSER] = id_clone_newuser;
+  rb_unshare_keywords[CLONE_NEWCGROUP] = id_clone_newcgroup;
+  rb_unshare_keywords[CLONE_NEWIPC] = id_clone_newipc;
+  rb_unshare_keywords[CLONE_NEWUTS] = id_clone_newuts;
+  rb_unshare_keywords[CLONE_NEWNET] = id_clone_newnet;
+  rb_unshare_keywords[CLONE_NEWPID] = id_clone_newpid;
+  rb_unshare_keywords[CLONE_NEWNS] = id_clone_newns;
+  rb_unshare_keywords[CLONE_NEWTIME] = id_clone_newtime;
 }

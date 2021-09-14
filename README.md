@@ -26,7 +26,7 @@ Or install it yourself as:
 
 ## Quick start
 
-    $ rake compile && echo 'require "runshare"; RUnshare::unshare' | irb
+    $ rake compile && echo 'require "runshare"; RUnshare::unshare(:clone_newuts => true)' | irb
     install -c tmp/x86_64-linux/runshare/2.4.10/runshare.so lib/runshare/runshare.so
     cp tmp/x86_64-linux/runshare/2.4.10/runshare.so tmp/x86_64-linux/stage/lib/runshare/runshare.so
     Switch to inspect mode.

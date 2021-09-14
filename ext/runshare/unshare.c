@@ -46,6 +46,8 @@
 #include "include/strutils.h"
 #include "include/pwdutils.h"
 
+#include "unshare.h"
+
 /* synchronize parent and child by pipe */
 #define PIPE_SYNC_BYTE	0x06
 
@@ -299,7 +301,7 @@ static gid_t get_group(const char *s, const char *err)
     return ret;
 }
 
-int rb_unshare_internal(int argc, char *argv[])
+int rb_unshare_internal(struct rb_unshare_args args)
 {
     enum {
         OPT_MOUNTPROC = CHAR_MAX + 1,
@@ -312,19 +314,9 @@ int rb_unshare_internal(int argc, char *argv[])
         OPT_MAPUSER,
         OPT_MAPGROUP,
     };
+
+    /*
     static const struct option longopts[] = {
-        { "help",          no_argument,       NULL, 'h'             },
-        { "version",       no_argument,       NULL, 'V'             },
-
-        { "mount",         optional_argument, NULL, 'm'             },
-        { "uts",           optional_argument, NULL, 'u'             },
-        { "ipc",           optional_argument, NULL, 'i'             },
-        { "net",           optional_argument, NULL, 'n'             },
-        { "pid",           optional_argument, NULL, 'p'             },
-        { "user",          optional_argument, NULL, 'U'             },
-        { "cgroup",        optional_argument, NULL, 'C'             },
-        { "time",          optional_argument, NULL, 'T'             },
-
         { "fork",          no_argument,       NULL, 'f'             },
         { "kill-child",    optional_argument, NULL, OPT_KILLCHILD   },
         { "mount-proc",    optional_argument, NULL, OPT_MOUNTPROC   },
@@ -343,6 +335,7 @@ int rb_unshare_internal(int argc, char *argv[])
         { "boottime",      required_argument, NULL, OPT_BOOTTIME    },
         { NULL, 0, NULL, 0 }
     };
+    */
 
     int setgrpcmd = SETGROUPS_NONE;
     int unshare_flags = 0;
@@ -367,129 +360,115 @@ int rb_unshare_internal(int argc, char *argv[])
     int force_monotonic = 0;
     int force_boottime = 0;
 
-    setlocale(LC_ALL, "");
-    bindtextdomain(PACKAGE, LOCALEDIR);
-    textdomain(PACKAGE);
-    close_stdout_atexit();
-
-    while ((c = getopt_long(argc, argv, "+fhVmuinpCTUrR:w:S:G:c", longopts, NULL)) != -1) {
-        switch (c) {
-            case 'f':
-                forkit = 1;
-                break;
-            case 'm':
-                unshare_flags |= CLONE_NEWNS;
-                if (optarg)
-                    set_ns_target(CLONE_NEWNS, optarg);
-                break;
-            case 'u':
-                unshare_flags |= CLONE_NEWUTS;
-                if (optarg)
-                    set_ns_target(CLONE_NEWUTS, optarg);
-                break;
-            case 'i':
-                unshare_flags |= CLONE_NEWIPC;
-                if (optarg)
-                    set_ns_target(CLONE_NEWIPC, optarg);
-                break;
-            case 'n':
-                unshare_flags |= CLONE_NEWNET;
-                if (optarg)
-                    set_ns_target(CLONE_NEWNET, optarg);
-                break;
-            case 'p':
-                unshare_flags |= CLONE_NEWPID;
-                if (optarg)
-                    set_ns_target(CLONE_NEWPID, optarg);
-                break;
-            case 'U':
-                unshare_flags |= CLONE_NEWUSER;
-                if (optarg)
-                    set_ns_target(CLONE_NEWUSER, optarg);
-                break;
-            case 'C':
-                unshare_flags |= CLONE_NEWCGROUP;
-                if (optarg)
-                    set_ns_target(CLONE_NEWCGROUP, optarg);
-                break;
-            case 'T':
-                unshare_flags |= CLONE_NEWTIME;
-                if (optarg)
-                    set_ns_target(CLONE_NEWTIME, optarg);
-                break;
-            case OPT_MOUNTPROC:
-                unshare_flags |= CLONE_NEWNS;
-                procmnt = optarg ? optarg : "/proc";
-                break;
-            case OPT_MAPUSER:
-                unshare_flags |= CLONE_NEWUSER;
-                mapuser = get_user(optarg, _("failed to parse uid"));
-                break;
-            case OPT_MAPGROUP:
-                unshare_flags |= CLONE_NEWUSER;
-                mapgroup = get_group(optarg, _("failed to parse gid"));
-                break;
-            case 'r':
-                unshare_flags |= CLONE_NEWUSER;
-                mapuser = 0;
-                mapgroup = 0;
-                break;
-            case 'c':
-                unshare_flags |= CLONE_NEWUSER;
-                mapuser = real_euid;
-                mapgroup = real_egid;
-                break;
-            case OPT_SETGROUPS:
-                setgrpcmd = setgroups_str2id(optarg);
-                break;
-            case OPT_PROPAGATION:
-                propagation = parse_propagation(optarg);
-                break;
-            case OPT_KILLCHILD:
-                forkit = 1;
-                if (optarg) {
-                    if ((kill_child_signo = signame_to_signum(optarg)) < 0)
-                        errx(EXIT_FAILURE, _("unknown signal: %s"),
-                             optarg);
-                } else {
-                    kill_child_signo = SIGKILL;
-                }
-                break;
-            case OPT_KEEPCAPS:
-                keepcaps = 1;
-                cap_last_cap(); /* Force last cap to be cached before we fork. */
-                break;
-            case 'S':
-                uid = strtoul_or_err(optarg, _("failed to parse uid"));
-                force_uid = 1;
-                break;
-            case 'G':
-                gid = strtoul_or_err(optarg, _("failed to parse gid"));
-                force_gid = 1;
-                break;
-            case 'R':
-                newroot = optarg;
-                break;
-            case 'w':
-                newdir = optarg;
-                break;
-            case OPT_MONOTONIC:
-                monotonic = strtoul_or_err(optarg, _("failed to parse monotonic offset"));
-                force_monotonic = 1;
-                break;
-            case OPT_BOOTTIME:
-                boottime = strtoul_or_err(optarg, _("failed to parse boottime offset"));
-                force_boottime = 1;
-                break;
-
-            case 'h':
-                print_version(EXIT_SUCCESS);
-          case 'V':
-                print_version(EXIT_SUCCESS);
-            default:
-                errtryhelp(EXIT_FAILURE);
-        }
+    // case 'f':
+    //     forkit = 1;
+    //     break;
+    if (args.clone_newns) {
+        unshare_flags |= CLONE_NEWNS;
+        // if (optarg)
+        //    set_ns_target(CLONE_NEWNS, optarg);
     }
+    if (args.clone_newuts) {
+        unshare_flags |= CLONE_NEWUTS;
+        // if (optarg)
+        //    set_ns_target(CLONE_NEWUTS, optarg);
+    }
+    if (args.clone_newipc) {
+        unshare_flags |= CLONE_NEWIPC;
+        // if (optarg)
+        //    set_ns_target(CLONE_NEWIPC, optarg);
+    }
+    if (args.clone_newnet) {
+        unshare_flags |= CLONE_NEWNET;
+        // if (optarg)
+        //    set_ns_target(CLONE_NEWNET, optarg);
+    }
+    if (args.clone_newpid) {
+        unshare_flags |= CLONE_NEWPID;
+        // if (optarg)
+        //    set_ns_target(CLONE_NEWPID, optarg);
+    }
+    if (args.clone_newuser) {
+        unshare_flags |= CLONE_NEWUSER;
+        // if (optarg)
+        //    set_ns_target(CLONE_NEWUSER, optarg);
+    }
+    if (args.clone_newcgroup) {
+        unshare_flags |= CLONE_NEWCGROUP;
+        // if (optarg)
+        //    set_ns_target(CLONE_NEWCGROUP, optarg);
+    }
+    if (args.clone_newtime) {
+        unshare_flags |= CLONE_NEWTIME;
+        // if (optarg)
+        //    set_ns_target(CLONE_NEWTIME, optarg);
+    }
+    // case OPT_MOUNTPROC:
+    //     unshare_flags |= CLONE_NEWNS;
+    //     procmnt = optarg ? optarg : "/proc";
+    //     break;
+    // case OPT_MAPUSER:
+    //     unshare_flags |= CLONE_NEWUSER;
+    //     mapuser = get_user(optarg, _("failed to parse uid"));
+    //     break;
+    // case OPT_MAPGROUP:
+    //     unshare_flags |= CLONE_NEWUSER;
+    //     mapgroup = get_group(optarg, _("failed to parse gid"));
+    //     break;
+    // case 'r':
+    //     unshare_flags |= CLONE_NEWUSER;
+    //     mapuser = 0;
+    //     mapgroup = 0;
+    //     break;
+    // case 'c':
+    //     unshare_flags |= CLONE_NEWUSER;
+    //     mapuser = real_euid;
+    //     mapgroup = real_egid;
+    //     break;
+    // case OPT_SETGROUPS:
+    //     setgrpcmd = setgroups_str2id(optarg);
+    //     break;
+    // case OPT_PROPAGATION:
+    //     propagation = parse_propagation(optarg);
+    //     break;
+    // case OPT_KILLCHILD:
+    //     forkit = 1;
+    //     if (optarg) {
+    //         if ((kill_child_signo = signame_to_signum(optarg)) < 0)
+    //             errx(EXIT_FAILURE, _("unknown signal: %s"),
+    //                  optarg);
+    //     } else {
+    //         kill_child_signo = SIGKILL;
+    //     }
+    //     break;
+    // case OPT_KEEPCAPS:
+    //     keepcaps = 1;
+    //     cap_last_cap(); /* Force last cap to be cached before we fork. */
+    //     break;
+    // case 'S':
+    //     uid = strtoul_or_err(optarg, _("failed to parse uid"));
+    //     force_uid = 1;
+    //     break;
+    // case 'G':
+    //     gid = strtoul_or_err(optarg, _("failed to parse gid"));
+    //     force_gid = 1;
+    //     break;
+    // case 'R':
+    //     newroot = optarg;
+    //     break;
+    // case 'w':
+    //     newdir = optarg;
+    //     break;
+    // case OPT_MONOTONIC:
+    //     monotonic = strtoul_or_err(optarg, _("failed to parse monotonic offset"));
+    //     force_monotonic = 1;
+    //     break;
+    // case OPT_BOOTTIME:
+    //     boottime = strtoul_or_err(optarg, _("failed to parse boottime offset"));
+    //     force_boottime = 1;
+    //     break;
+    // default: TODO
+    //     errtryhelp(EXIT_FAILURE);
 
     if ((force_monotonic || force_boottime) && !(unshare_flags & CLONE_NEWTIME))
         errx(EXIT_FAILURE, _("options --monotonic and --boottime require "
@@ -665,10 +644,10 @@ int rb_unshare_internal(int argc, char *argv[])
         }
     }
 
-    if (optind < argc) {
-        execvp(argv[optind], argv + optind);
-        errexec(argv[optind]);
-    }
+    // TODO if (optind < argc) {
+    // TODO     execvp(argv[optind], argv + optind);
+    // TODO     errexec(argv[optind]);
+    // TODO }
 
     return 0;
 }
