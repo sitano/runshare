@@ -1,0 +1,21 @@
+/.bundle/
+/.yardoc
+/_yardoc/
+/coverage/
+/doc/
+/pkg/
+/spec/reports/
+/tmp/
+/.idea/
+.tool-versions
+CMakeLists.txt
+/cmake-build-debug/
+
+*.bundle
+*.so
+*.o
+*.a
+mkmf.log
+
+# rspec failure tracking
+.rspec_status
