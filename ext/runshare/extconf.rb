@@ -24,6 +24,9 @@ end
 if have_func("setns", "sys/syscall.h")
     $defs.push("-DHAVE_SETNS")
 end
+if have_func("err", "err.h")
+    $defs.push("-DHAVE_ERR_H")
+end
 
 $srcs = ["runshare.c", "unshare.c"]
 

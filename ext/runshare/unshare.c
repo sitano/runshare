@@ -20,26 +20,25 @@
 
 #include <errno.h>
 #include <getopt.h>
+#include <grp.h>
+#include <ruby.h>
 #include <sched.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <sys/wait.h>
 #include <sys/mount.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <sys/prctl.h>
-#include <grp.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
 /* we only need some defines missing in sys/mount.h, no libmount linkage */
 #include <libmount/libmount.h>
 
-#include "include/nls.h"
 #include "include/c.h"
 #include "include/caputils.h"
 #include "include/closestream.h"
 #include "include/namespace.h"
-#include "include/xalloc.h"
 #include "include/pathnames.h"
 #include "include/all-io.h"
 #include "include/signames.h"

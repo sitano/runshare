@@ -8,7 +8,6 @@
 #include <unistd.h>
 
 #include "c.h"
-#include "nls.h"
 
 #ifndef CLOSE_EXIT_CODE
 # define CLOSE_EXIT_CODE EXIT_FAILURE
