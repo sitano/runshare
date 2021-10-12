@@ -20,6 +20,7 @@ struct rb_unshare_args {
   bool clone_newtime;
 
   bool fork;
+  bool wait;
 };
 
 int rb_unshare_internal(struct rb_unshare_args args);

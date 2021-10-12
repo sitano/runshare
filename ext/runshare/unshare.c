@@ -338,7 +338,6 @@ int rb_unshare_internal(struct rb_unshare_args args)
 
     int setgrpcmd = SETGROUPS_NONE;
     int unshare_flags = 0;
-    int c, forkit = 0;
     uid_t mapuser = -1;
     gid_t mapgroup = -1;
     int kill_child_signo = 0; /* 0 means --kill-child was not used */
@@ -359,9 +358,6 @@ int rb_unshare_internal(struct rb_unshare_args args)
     int force_monotonic = 0;
     int force_boottime = 0;
 
-    if (args.fork) {
-        forkit = 1;
-    }
     if (args.clone_newns) {
         unshare_flags |= CLONE_NEWNS;
         // if (optarg)
@@ -485,10 +481,7 @@ int rb_unshare_internal(struct rb_unshare_args args)
     if (force_monotonic)
         settime(monotonic, CLOCK_MONOTONIC);
 
-    if (forkit) {
-        signal(SIGINT, SIG_IGN);
-        signal(SIGTERM, SIG_IGN);
-
+    if (args.fork) {
         /* force child forking before mountspace binding
          * so pid_for_children is populated.
          * Silence:
@@ -510,7 +503,7 @@ int rb_unshare_internal(struct rb_unshare_args args)
         }
     }
 
-    if (npersists && (pid || !forkit)) {
+    if (npersists && (pid || !args.fork)) {
         /* run in parent */
         if (pid_bind && (unshare_flags & CLONE_NEWNS)) {
             int rc;
@@ -523,32 +516,40 @@ int rb_unshare_internal(struct rb_unshare_args args)
 
             /* wait for bind_ns_files_from_child() */
             do {
-                rc = waitpid(pid_bind, &status, 0);
+                rc = NUM2INT(PIDT2NUM(rb_waitpid(pid_bind, &status, 0)));
                 if (rc < 0) {
                     if (errno == EINTR)
                         continue;
-                    err(EXIT_FAILURE, _("waitpid failed"));
+                    rb_sys_fail("rb_waitpid");
                 }
                 if (WIFEXITED(status) &&
-                    WEXITSTATUS(status) != EXIT_SUCCESS)
-                    return WEXITSTATUS(status);
+                    WEXITSTATUS(status) != EXIT_SUCCESS) {
+                    return NUM2PIDT(INT2NUM(pid));
+                }
             } while (rc < 0);
-        } else
+        } else {
             /* simple way, just bind */
             bind_ns_files(getpid());
+        }
     }
 
     if (pid) {
-        if (waitpid(pid, &status, 0) == -1)
-            err(EXIT_FAILURE, _("waitpid failed"));
+        if (!args.wait) {
+            return NUM2PIDT(INT2NUM(pid));
+        }
 
-        signal(SIGINT, SIG_DFL);
-        signal(SIGTERM, SIG_DFL);
+        if (NUM2INT(PIDT2NUM(rb_waitpid(pid, &status, 0))) == -1) {
+            rb_sys_fail("rb_waitpid");
+        }
 
-        if (WIFEXITED(status))
-            return WEXITSTATUS(status);
-        if (WIFSIGNALED(status))
+        if (WIFEXITED(status)) {
+            return NUM2PIDT(INT2NUM(pid));
+        }
+
+        if (WIFSIGNALED(status)) {
             kill(getpid(), WTERMSIG(status));
+        }
+
         err(EXIT_FAILURE, _("child exit failed"));
     }
 
@@ -653,5 +654,5 @@ int rb_unshare_internal(struct rb_unshare_args args)
     // TODO     errexec(argv[optind]);
     // TODO }
 
-    return 0;
+    return NUM2PIDT(INT2NUM(pid));
 }
