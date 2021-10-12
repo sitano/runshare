@@ -10,17 +10,17 @@
 # define _(Text) (Text)
 
 struct rb_unshare_args {
-  bool clone_newuser;
-  bool clone_newcgroup;
-  bool clone_newipc;
-  bool clone_newuts;
-  bool clone_newnet;
-  bool clone_newpid;
-  bool clone_newns;
-  bool clone_newtime;
+    bool clone_newuser;
+    bool clone_newcgroup;
+    bool clone_newipc;
+    bool clone_newuts;
+    bool clone_newnet;
+    bool clone_newpid;
+    bool clone_newns;
+    bool clone_newtime;
 
-  bool fork;
-  bool wait;
+    bool fork;
+    bool wait;
 };
 
 int rb_unshare_internal(struct rb_unshare_args args);
@@ -31,17 +31,16 @@ int rb_unshare_internal(struct rb_unshare_args args);
 
 static inline
 __attribute__((__format__(printf, 2, 3)))
-int xasprintf(char **strp, const char *fmt, ...)
-{
-   int ret;
-   va_list args;
+int xasprintf(char **strp, const char *fmt, ...) {
+    int ret;
+    va_list args;
 
-   va_start(args, fmt);
-   ret = vasprintf(&(*strp), fmt, args);
-   va_end(args);
-   if (ret < 0)
-       err(XALLOC_EXIT_CODE, "cannot allocate string");
-   return ret;
+    va_start(args, fmt);
+    ret = vasprintf(&(*strp), fmt, args);
+    va_end(args);
+    if (ret < 0)
+        err(XALLOC_EXIT_CODE, "cannot allocate string");
+    return ret;
 }
 
 #endif

@@ -19,11 +19,9 @@
  */
 
 #include <errno.h>
-#include <getopt.h>
 #include <grp.h>
 #include <ruby.h>
 #include <sched.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <sys/mount.h>
 #include <sys/prctl.h>
@@ -37,11 +35,9 @@
 
 #include "include/c.h"
 #include "include/caputils.h"
-#include "include/closestream.h"
 #include "include/namespace.h"
 #include "include/pathnames.h"
 #include "include/all-io.h"
-#include "include/signames.h"
 #include "include/strutils.h"
 #include "include/pwdutils.h"
 
@@ -115,7 +111,7 @@ static void setgroups_control(int action)
 
     if (write_all(fd, cmd, strlen(cmd)))
         err(EXIT_FAILURE, _("write failed %s"), file);
-  close(fd);
+    close(fd);
 }
 
 static void map_id(const char *file, uint32_t from, uint32_t to)
