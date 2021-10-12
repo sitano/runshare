@@ -13,8 +13,10 @@ enum {
   CLONE_NEWPID,
   CLONE_NEWNS,
   CLONE_NEWTIME,
-  CLONE_KEYWORDS
-} UNSHARE_KEYWORDS;
+  FORK_ON_CLONE,
+  // list end marker
+  FLAGS_COUNT
+};
 
 static ID id_clone_newuser;
 static ID id_clone_newcgroup;
@@ -24,8 +26,9 @@ static ID id_clone_newnet;
 static ID id_clone_newpid;
 static ID id_clone_newns;
 static ID id_clone_newtime;
+static ID id_fork;
 
-static ID rb_unshare_keywords[CLONE_KEYWORDS];
+static ID rb_unshare_keywords[FLAGS_COUNT];
 
 static VALUE
 rb_unshare(int argc, VALUE *argv, VALUE self)
@@ -36,9 +39,9 @@ rb_unshare(int argc, VALUE *argv, VALUE self)
   rb_scan_args(argc, argv, "0:", &opt);
 
   if (!NIL_P(opt)) {
-    VALUE kwvals[CLONE_KEYWORDS];
+    VALUE kwvals[FLAGS_COUNT];
 
-    rb_get_kwargs(opt, rb_unshare_keywords, 0, CLONE_KEYWORDS, kwvals);
+    rb_get_kwargs(opt, rb_unshare_keywords, 0, FLAGS_COUNT, kwvals);
 
     if (kwvals[CLONE_NEWUSER] != Qundef) args.clone_newuser = RTEST(kwvals[CLONE_NEWUSER]);
     if (kwvals[CLONE_NEWCGROUP] != Qundef) args.clone_newcgroup = RTEST(kwvals[CLONE_NEWCGROUP]);
@@ -48,6 +51,7 @@ rb_unshare(int argc, VALUE *argv, VALUE self)
     if (kwvals[CLONE_NEWPID] != Qundef) args.clone_newpid = RTEST(kwvals[CLONE_NEWPID]);
     if (kwvals[CLONE_NEWNS]  != Qundef) args.clone_newns = RTEST(kwvals[CLONE_NEWNS]);
     if (kwvals[CLONE_NEWTIME] != Qundef) args.clone_newtime = RTEST(kwvals[CLONE_NEWTIME]);
+    if (kwvals[FORK_ON_CLONE] != Qundef) args.fork = RTEST(kwvals[FORK_ON_CLONE]);
   }
 
   return INT2FIX(rb_unshare_internal(args));
@@ -66,6 +70,7 @@ Init_runshare(void) {
   id_clone_newpid    = rb_intern("clone_newpid");
   id_clone_newns     = rb_intern("clone_newns");
   id_clone_newtime   = rb_intern("clone_newtime");
+  id_fork            = rb_intern("fork");
 
   rb_unshare_keywords[CLONE_NEWUSER] = id_clone_newuser;
   rb_unshare_keywords[CLONE_NEWCGROUP] = id_clone_newcgroup;
@@ -75,4 +80,5 @@ Init_runshare(void) {
   rb_unshare_keywords[CLONE_NEWPID] = id_clone_newpid;
   rb_unshare_keywords[CLONE_NEWNS] = id_clone_newns;
   rb_unshare_keywords[CLONE_NEWTIME] = id_clone_newtime;
+  rb_unshare_keywords[FORK_ON_CLONE] = id_fork;
 }

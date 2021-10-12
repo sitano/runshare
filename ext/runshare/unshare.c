@@ -70,7 +70,7 @@ static struct namespace_file {
     { .name = NULL }
 };
 
-static int npersists;	/* number of persistent namespaces */
+static int npersists = 0;	/* number of persistent namespaces */
 
 enum {
     SETGROUPS_NONE = -1,
@@ -359,9 +359,9 @@ int rb_unshare_internal(struct rb_unshare_args args)
     int force_monotonic = 0;
     int force_boottime = 0;
 
-    // case 'f':
-    //     forkit = 1;
-    //     break;
+    if (args.fork) {
+        forkit = 1;
+    }
     if (args.clone_newns) {
         unshare_flags |= CLONE_NEWNS;
         // if (optarg)
@@ -490,8 +490,13 @@ int rb_unshare_internal(struct rb_unshare_args args)
         signal(SIGTERM, SIG_IGN);
 
         /* force child forking before mountspace binding
-         * so pid_for_children is populated */
-        pid = fork();
+         * so pid_for_children is populated.
+         * Silence:
+         *      warning: pthread_create failed for timer: Invalid argument, scheduling broken
+         * by setting $VERBOSE = nil.
+         * */
+        VALUE res = rb_eval_string("Process.fork");
+        pid = NIL_P(res) ? 0 : NUM2INT(res);
 
         switch(pid) {
             case -1:

@@ -18,7 +18,8 @@ struct rb_unshare_args {
   bool clone_newpid;
   bool clone_newns;
   bool clone_newtime;
-  bool clone_keywords;
+
+  bool fork;
 };
 
 int rb_unshare_internal(struct rb_unshare_args args);
