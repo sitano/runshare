@@ -21,6 +21,10 @@ struct rb_unshare_args {
 
     bool fork;
     bool wait;
+
+    // default: /proc
+    VALUE mount_proc;
+    VALUE root;
 };
 
 int rb_unshare_internal(struct rb_unshare_args args);

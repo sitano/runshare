@@ -312,9 +312,7 @@ int rb_unshare_internal(struct rb_unshare_args args)
 
     /*
     static const struct option longopts[] = {
-        { "fork",          no_argument,       NULL, 'f'             },
         { "kill-child",    optional_argument, NULL, OPT_KILLCHILD   },
-        { "mount-proc",    optional_argument, NULL, OPT_MOUNTPROC   },
         { "map-user",      required_argument, NULL, OPT_MAPUSER     },
         { "map-group",     required_argument, NULL, OPT_MAPGROUP    },
         { "map-root-user", no_argument,       NULL, 'r'             },
@@ -324,7 +322,6 @@ int rb_unshare_internal(struct rb_unshare_args args)
         { "keep-caps",     no_argument,       NULL, OPT_KEEPCAPS    },
         { "setuid",	   required_argument, NULL, 'S'		    },
         { "setgid",	   required_argument, NULL, 'G'		    },
-        { "root",	   required_argument, NULL, 'R'		    },
         { "wd",		   required_argument, NULL, 'w'		    },
         { "monotonic",     required_argument, NULL, OPT_MONOTONIC   },
         { "boottime",      required_argument, NULL, OPT_BOOTTIME    },
@@ -337,8 +334,8 @@ int rb_unshare_internal(struct rb_unshare_args args)
     uid_t mapuser = -1;
     gid_t mapgroup = -1;
     int kill_child_signo = 0; /* 0 means --kill-child was not used */
-    const char *procmnt = NULL;
-    const char *newroot = NULL;
+    char *procmnt = NULL;
+    char *newroot = NULL;
     const char *newdir = NULL;
     pid_t pid_bind = 0;
     pid_t pid = 0;
@@ -394,10 +391,10 @@ int rb_unshare_internal(struct rb_unshare_args args)
         // if (optarg)
         //    set_ns_target(CLONE_NEWTIME, optarg);
     }
-    // case OPT_MOUNTPROC:
-    //     unshare_flags |= CLONE_NEWNS;
-    //     procmnt = optarg ? optarg : "/proc";
-    //     break;
+    if (args.mount_proc != Qundef) {
+        unshare_flags |= CLONE_NEWNS;
+        procmnt = StringValueCStr(args.mount_proc);
+    }
     // case OPT_MAPUSER:
     //     unshare_flags |= CLONE_NEWUSER;
     //     mapuser = get_user(optarg, _("failed to parse uid"));
@@ -444,9 +441,9 @@ int rb_unshare_internal(struct rb_unshare_args args)
     //     gid = strtoul_or_err(optarg, _("failed to parse gid"));
     //     force_gid = 1;
     //     break;
-    // case 'R':
-    //     newroot = optarg;
-    //     break;
+    if (args.root != Qundef) {
+        newroot = StringValueCStr(args.root);
+    }
     // case 'w':
     //     newdir = optarg;
     //     break;
