@@ -10,7 +10,7 @@ Gem::Specification.new do |spec|
   spec.email         = ["john.koepi@gmail.com"]
 
   spec.summary       = "This tool allows to unshare Linux namespaces."
-  # spec.description   = %q{Write a longer description or delete this line.}
+  spec.description   = File.read("README.md")
   spec.homepage      = "https://github.com/sitano/runshare"
   spec.license       = "MIT"
 

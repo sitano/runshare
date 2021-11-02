@@ -17,12 +17,49 @@ And then execute:
 
 Or install it yourself as:
 
-    $ gem install runshare 
+    $ gem install runshare
 
 ## Usage
 
     > require "runshare"
     > RUnshare::unshare
+
+For example:
+
+    cat > test.rb
+
+    require "runshare"
+
+    pid = RUnshare::unshare(
+      :clone_newpid    => true,
+      :clone_newns     => true,
+      :clone_newcgroup => true,
+      :clone_newipc    => true,
+      :clone_newuts    => true,
+      :clone_newnet    => true,
+      :clone_newtime   => true,
+      :fork            => true,
+      :mount_proc      => "/proc",
+      # docker export $(docker create hello-world) | tar -xf - -C rootfs
+      :root            => "/tmp/rootfs"
+    )
+
+    if pid == 0
+      # child
+      puts "--- #{Process.pid}"
+      if system("/hello") != true
+        raise "bad"
+      end
+      puts "--- done"
+    else
+      # parent
+      puts "-- unshare=#{pid}, pid=#{Process.pid}"
+      puts "-- exit=#{Process.waitpid(pid)}"
+    end
+
+    ^D
+
+    sudo ruby -I ./lib ./test.rb
 
 ## Quick start
 
@@ -31,6 +68,17 @@ Or install it yourself as:
     cp tmp/x86_64-linux/runshare/2.4.10/runshare.so tmp/x86_64-linux/stage/lib/runshare/runshare.so
     Switch to inspect mode.
     require "runshare"; RUnshare::unshare
+
+## Ruby <2.5
+
+If your app is single threaded and you are observing:
+
+    eval:1: warning: pthread_create failed for timer: Invalid argument, scheduling broken
+
+Just ignore it with some degree of bravity. You also
+can silence it by setting:
+
+    $VERBOSE = nil
 
 ## Development
 
